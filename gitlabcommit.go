@@ -2,13 +2,16 @@ package gitlabcommit
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/resty.v1"
 )
 
+// GitlabCommit data structure
 type GitlabCommit struct {
 	ID             string    `json:"id"`
 	ShortID        string    `json:"short_id"`
@@ -36,16 +39,34 @@ type GitlabCommit struct {
 	Status string `json:"status"`
 }
 
-const (
-	GITLABCOMMIT_TOKEN   string = ""
-	GITLABCOMMIT_BASEURL string = ""
+var (
+	gitlabToken   string
+	gitlabBaseURL string
 )
 
+// SetGitlabConfig to set base URL and private token to access gitlab
+func SetGitlabConfig(baseURL, token string) error {
+	baseURL = strings.TrimSpace(baseURL)
+	token = strings.TrimSpace(token)
+
+	if baseURL == "" {
+		return errors.New("gitlabcommit baseurl can not be empty")
+	} else if token == "" {
+		return errors.New("gitlabcommit token can not be empty")
+	}
+
+	gitlabBaseURL = baseURL
+	gitlabToken = token
+
+	return nil
+}
+
+// GetGitlabCommit to get commit detailed info
 func GetGitlabCommit(projectID int, commitID string) (*GitlabCommit, error) {
 	resp, err := resty.SetTimeout(time.Duration(1*time.Minute)).
 		R().
-		SetHeader("PRIVATE-TOKEN", GITLABCOMMIT_TOKEN).
-		Get(GITLABCOMMIT_BASEURL + "/projects/" + strconv.Itoa(projectID) + "/repository/commits/" + commitID)
+		SetHeader("PRIVATE-TOKEN", gitlabToken).
+		Get(gitlabBaseURL + "/projects/" + strconv.Itoa(projectID) + "/repository/commits/" + commitID)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -60,4 +81,3 @@ func GetGitlabCommit(projectID int, commitID string) (*GitlabCommit, error) {
 	}
 	return c, nil
 }
-
